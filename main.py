@@ -13,6 +13,10 @@ def main():
         print('    exit                               -- выход')
         print('    move <row> <col> <row1> <col1>     -- ход из клетки (row, col)')
         print('                                          в клетку (row1, col1)')
+        print('    castling7                          -- короткая рокировка')
+        print('    castling0                          -- длинная рокировка')
+        print('    move_and_promote_pawn <row> <col> <row1> <col1> <char> -- превращение пешки')
+        print('    "Q" - ферзь, "R" - ладья, "N" - конь, "B" - слон')
         # Выводим приглашение игроку нужного цвета
         if board.current_player_color() == WHITE:
             print('Ход белых:')
@@ -21,8 +25,41 @@ def main():
         command = input()
         if command == 'exit':
             break
+
+        if command == 'castling7':
+            if board.castling7():
+                print('Ход успешен')
+            else:
+                print('Рокировка невозможна')
+            continue
+
+        if command == 'castling0':
+            if board.castling0():
+                print('Ход успешен')
+            else:
+                print('Рокировка невозможна')
+            continue
+
+        if command == 'move_and_promote_pawn':
+            row, col, row1, col1 = map(int, command.split()[1:-1])
+            char = command.split()[-1]
+            if board.move_and_promote_pawn(row, col, row1, col1, char):
+                print('Ход успешен')
+            else:
+                print('Неправильные координаты или фигура превращения')
+            continue
+
         row, col, row1, col1 = map(int, command.split()[1:])
         if board.move_piece(row, col, row1, col1):
             print('Ход успешен')
         else:
             print('Координаты некорректы! Попробуйте другой ход!')
+
+        if board.game_over():
+            print(board)
+            print('Игра закончена')
+            break
+
+
+if __name__ == '__main__':
+    main()
