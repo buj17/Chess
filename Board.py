@@ -1,9 +1,10 @@
-from Pieces import *
-from colors import *
+from Pieces import Piece, Pawn, Rook, Knight, Bishop, Queen, King
+from colors import WHITE, BLACK, opponent
 
 
 class Board:
     def __init__(self):
+
         self.color = WHITE
         self.field: list[list[None | Piece]] = [[None] * 8 for _ in range(8)]
 
@@ -27,7 +28,6 @@ class Board:
                 то два пробела."""
         piece: Piece | None = self.field[row][col]
         if piece is None:
-            # return '   ⁠   '
             return '  '
         c = 'w' if piece.get_color() == WHITE else 'b'
         return c + piece.char()
@@ -44,13 +44,25 @@ class Board:
         if self.end:
             return None
 
-        if row == row1 and col == col1:
-            return False  # нельзя пойти в ту же клетку
-
-        if not correct_cords(row1, col1):
-            return False  # неправильные координаты
-
         piece: Piece | None = self.field[row][col]
+
+        castling7_condition = ({row, row1} < {0, 7},
+                               row == row1,
+                               col == 4,
+                               col1 == 6)
+
+        castling0_condition = ({row, row1} < {0, 7},
+                               row == row1,
+                               col == 4,
+                               col1 == 2)
+
+        if all(castling7_condition):
+            if self.castling7():
+                return True
+
+        if all(castling0_condition):
+            if self.castling0():
+                return True
 
         if piece is None:
             return False  # нельзя пойти без фигуры
@@ -138,7 +150,7 @@ class Board:
         """Удаление после хода возможности в дальнейшем взять пешку на проходе и проверка появления шахов"""
         for i, lst in enumerate(self.field):
             for j, element in enumerate(lst):
-                if isinstance(element, Pawn) and self.color == element.get_color():
+                if isinstance(element, Pawn) and self.color == opponent(element.get_color()):
                     element.remove_en_passant()
                     self.field[i][j] = element
 
@@ -263,7 +275,7 @@ class Board:
         return False
 
     def scan_checks(self):
-        """Наложить на короля шах, если он появляется после хода"""
+        """Наложить на короля шах, если он появляется после хода, и наоборот"""
         for i, lst in enumerate(self.field):
             for j, element in enumerate(lst):
                 if isinstance(element, King):
@@ -335,23 +347,8 @@ class Board:
         return False
 
     def game_over(self):
+        """Вернуть, закончилась ли игра"""
         return self.end
-
-    # def __str__(self):
-    #     res = ['     +------+------+-----+------+------+------+-----+------+']
-    #     for row in range(7, -1, -1):
-    #         res.append('  ' + str(row) + '  ')
-    #         for col in range(8):
-    #             res[-1] += '| '
-    #             res[-1] += self.cell(row, col)
-    #             res[-1] += ' '
-    #         res[-1] += '|'
-    #         res.append('     +------+------+-----+------+------+------+-----+------+')
-    #     res.append('        ')
-    #     for col in range(8):
-    #         res[-1] += str(col)
-    #         res[-1] += '        '
-    #     return '\n'.join(res)
 
     def __str__(self):
         res = ['     +----+----+----+----+----+----+----+----+']

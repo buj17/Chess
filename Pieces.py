@@ -1,11 +1,11 @@
-from colors import *
+from colors import WHITE, BLACK, opponent, correct_cords
 
 
 class Piece:
     """Основная конструкция фигуры"""
 
     def __init__(self, color):
-        self.color = color
+        self.color: WHITE | BLACK = color
 
     def get_color(self):
         """Вернуть цвет фигуры"""
@@ -13,10 +13,23 @@ class Piece:
 
     def can_move(self, board, row, col, row1, col1):
         """Проверка может ли фигура походить в данное поле"""
+
+        # Неправильные координаты
         if not correct_cords(row1, col1) or not correct_cords(row, col):
             return False
-        if board.get_piece(row1, col1) is not None and board.get_piece(row1, col1).get_color() == self.color:
+
+        # Фигура ходит в клетку, где стоит фигура такого же цвета
+        if board.get_piece(row1, col1) is not None and board.get_piece(row1, col1).get_color() == self.get_color():
             return False
+
+        # нельзя пойти в ту же клетку
+        if row == row1 and col == col1:
+            return False
+
+        # Игра уже закончилась
+        if board.game_over():
+            return False
+
         return True
 
     def can_attack(self, board, row, col, row1, col1):
@@ -34,9 +47,6 @@ class Pawn(Piece):
     def __init__(self, color):
         super().__init__(color)
         self.en_passant = False
-
-    # def char(self):
-    #     return '♙' if self.color == BLACK else '♟'
 
     def can_move(self, board, row, col, row1, col1):
         """Пешка может ходить только по строкам, а столбец всегда одинаковый"""
@@ -115,9 +125,6 @@ class Rook(Piece):
         super().__init__(color)
         self.castle = True
 
-    # def char(self):
-    #     return '♖' if self.color == BLACK else '♜'
-
     def can_move(self, board, row, col, row1, col1):
         """Нельзя менять обе координаты сразу"""
 
@@ -158,9 +165,6 @@ class Rook(Piece):
 class Knight(Piece):
     """Конь"""
 
-    # def char(self):
-    #     return '♘' if self.color == BLACK else '♞'
-
     def char(self):
         return 'N'
 
@@ -176,14 +180,11 @@ class Knight(Piece):
         return False
 
     def can_attack(self, board, row, col, row1, col1):
-        return self.can_move(board, row, col, row1, col1) and self.color == opponent(board.get_piece(row1, col))
+        return self.can_move(board, row, col, row1, col1)
 
 
 class Bishop(Piece):
     """Слон"""
-
-    # def char(self):
-    #     return '♗' if self.color == BLACK else '♝'
 
     def can_move(self, board, row, col, row1, col1):
         """Обе координаты изменяются по модулю одинаково"""
@@ -216,9 +217,7 @@ class Bishop(Piece):
 
 
 class Queen(Piece):
-
-    # def char(self):
-    #     return '♕' if self.color == BLACK else '♛'
+    """Ферзь"""
 
     def can_move(self, board, row, col, row1, col1):
         """Объединение ходов слона и ладьи"""
@@ -267,13 +266,12 @@ class Queen(Piece):
 
 
 class King(Piece):
+    """Король"""
+
     def __init__(self, color):
         super().__init__(color)
         self.check = False
         self.castle = True
-
-    # def char(self):
-    #     return '♔' if self.color == BLACK else '♚'
 
     def can_move(self, board, row, col, row1, col1):
 
@@ -292,6 +290,12 @@ class King(Piece):
 
         return True
 
+    def can_attack(self, board, row, col, row1, col1):
+        if not (abs(row - row1) < 2 and abs(col - col1) < 2):
+            return False
+
+        return True
+
     def add_check(self):
         """Сделать короля под шахом"""
         self.check = True
@@ -301,6 +305,7 @@ class King(Piece):
         self.check = False
 
     def is_under_check(self):
+        """Вернуть, находится ли король под шахом"""
         return self.check
 
     def can_castle(self):
