@@ -41,24 +41,34 @@ def main():
                 print('Рокировка невозможна')
             continue
 
-        if command == 'move_and_promote_pawn':
-            row, col, row1, col1 = map(int, command.split()[1:-1])
-            char = command.split()[-1]
-            if board.move_and_promote_pawn(row, col, row1, col1, char):
-                print('Ход успешен')
-            else:
-                print('Неправильные координаты или фигура превращения')
-            continue
+        command = command.split()
 
-        try:
-            row, col, row1, col1 = map(int, command.split()[1:])
-        except ValueError:
-            print('Ошибка при вводе команды')
-        else:
-            if board.move_piece(row, col, row1, col1):
-                print('Ход успешен')
+        if command[0] == 'move_and_promote_pawn':
+            try:
+                row, col, row1, col1 = map(int, command[1:-1])
+                char = command[-1]
+            except ValueError:
+                print('Ошибка при вводе данных')
             else:
-                print('Координаты некорректны! Попробуйте другой ход!')
+                if board.move_and_promote_pawn(row, col, row1, col1, char):
+                    print('Ход успешен')
+                else:
+                    print('Неправильные координаты или фигура превращения')
+
+        elif command[0] == 'move':
+
+            try:
+                row, col, row1, col1 = map(int, command.split()[1:])
+            except ValueError:
+                print('Ошибка при вводе команды')
+            else:
+                if board.move_piece(row, col, row1, col1):
+                    print('Ход успешен')
+                else:
+                    print('Координаты некорректны! Попробуйте другой ход!')
+
+        else:
+            print('Несуществующая команда')
 
         if board.game_over():
             print(board)
