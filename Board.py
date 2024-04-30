@@ -36,15 +36,63 @@ class Board:
         """Вернуть цвет игрока, который сейчас ходит"""
         return self.color
 
-    def move_piece(self, row, col, row1, col1):
-        """Переместить фигуру из точки (row, col) в точку (row1, col1).
-                Если перемещение возможно, метод выполнит его и вернет True.
-                Если нет --- вернет False"""
+    def possible_move(self, row, col, row1, col1):
+        """Возвращает, возможно ли сделать ход, без изменений в доске"""
 
         if self.end:
             return None
 
         piece: Piece | None = self.field[row][col]
+
+        if piece is None:
+            return False  # нельзя пойти без фигуры
+
+        if piece.get_color() != self.color:
+            return False  # игрок ходит не своим цветом
+
+        if self.cancel_move(row, col, row1, col1):
+            return False
+
+        if isinstance(piece, Pawn):
+            piece: Pawn
+
+            if piece.make_en_passant(self, row, col, row1, col1):
+                return True
+
+            elif (piece.can_attack(self, row, col, row1, col1) and
+                  self.get_piece(row1, col1) is not None or
+                  piece.can_move(self, row, col, row1, col1)):
+                return True
+
+            else:
+                return False
+
+        if isinstance(piece, King):
+            piece: King
+            if not piece.can_move(self, row, col, row1, col1):
+                return False
+            else:
+                return True
+
+        piece: Queen | Rook | Knight | Bishop
+
+        if self.get_piece(row1, col1) is None:
+            if not piece.can_move(self, row, col, row1, col1):
+                return False  # неправильный ход
+
+        elif self.field[row1][col1].get_color() == opponent(piece.get_color()):
+            if not piece.can_attack(self, row, col, row1, col1):
+                return False
+
+        else:
+            return False
+
+        return True
+
+    def move_piece(self, row, col, row1, col1):
+        """Переместить фигуру из точки (row, col) в точку (row1, col1).
+                Если перемещение возможно, метод выполнит его и вернет True.
+                Если нет --- вернет False"""
 
         castling7_condition = ({row, row1} < {0, 7},
                                row == row1,
@@ -64,72 +112,21 @@ class Board:
             if self.castling0():
                 return True
 
-        if piece is None:
-            return False  # нельзя пойти без фигуры
+        if not self.possible_move(row, col, row1, col1):
+            return False
 
-        if piece.get_color() != self.color:
-            return False  # игрок ходит не своим цветом
+        piece: Piece = self.field[row][col]
 
-        if isinstance(piece, Pawn):
-            piece: Pawn
+        self.field[row][col] = None  # Снять фигуру.
+        self.field[row1][col1] = piece  # Поставить на новое место.
+        self.update()
 
-            if self.cancel_move(row, col, row1, col1):
-                return False
-
-            if piece.make_en_passant(self, row, col, row1, col1):
-                self.field[row][col] = None
-                self.field[row1][col1] = piece
-                self.field[row][col1] = None
-            elif (piece.can_attack(self, row, col, row1, col1) and
-                  self.get_piece(row1, col1) is not None or
-                  piece.can_move(self, row, col, row1, col1)):
-                self.field[row][col] = None
-                self.field[row1][col1] = piece
-            else:
-                return False
-            self.update()
-            return True
-
-        if isinstance(piece, King):
-            piece: King
-            if not piece.can_move(self, row, col, row1, col1):
-                return False
-
-            if self.cancel_move(row, col, row1, col1):
-                return False
-
-            self.field[row][col] = None
-            self.field[row1][col1] = piece
+        # Если походила ладья или король, удаляем возможность рокироваться
+        if isinstance(piece, (King, Rook)):
+            piece: King | Rook
             piece.remove_castle()
-            self.update()
 
-            return True
-
-        else:
-            if self.get_piece(row1, col1) is None:
-                if not piece.can_move(self, row, col, row1, col1):
-                    return False  # неправильный ход
-
-            elif self.field[row1][col1].get_color() == opponent(piece.get_color()):
-                if not piece.can_attack(self, row, col, row1, col1):
-                    return False
-
-            else:
-                return False
-
-            if self.cancel_move(row, col, row1, col1):
-                return False
-
-            self.field[row][col] = None  # Снять фигуру.
-            self.field[row1][col1] = piece  # Поставить на новое место.
-            self.update()
-
-            # Если походила ладья или король, удаляем возможность рокироваться
-            if isinstance(piece, (King, Rook)):
-                piece: King | Rook
-                piece.remove_castle()
-
-            return True
+        return True
 
     def is_under_attack(self, row, col, color):
         """Проверка на то, что как минимум одна фигура цвета color может атаковать данную клетку"""
@@ -174,8 +171,9 @@ class Board:
         if self.cancel_move(row, col, row1, col1):
             return False
 
-        if self.move_piece(row, col, row1, col1):
-            self.field[row1][col1] = pieces[char](self.get_piece(row1, col1).get_color())
+        if self.possible_move(row, col, row1, col1):
+            self.field[row1][col1] = pieces[char](self.get_piece(row, col).get_color())
+            self.field[row][col] = None
 
             self.update()
 
@@ -183,8 +181,8 @@ class Board:
 
         return False
 
-    def castling0(self):
-        """Рокировка на ферзевом фланге"""
+    def possible_castling0(self):
+        """Возвращает, возможно ли выполнить длинную рокировку"""
         if self.end:
             return None
 
@@ -212,19 +210,30 @@ class Board:
         if not all(conditions):
             return False
 
+        return True
+
+    def castling0(self):
+        """Рокировка на ферзевом фланге"""
+        if not self.possible_castling0():
+            return False
+
+        row = 0 if self.current_player_color() == WHITE else 7
+        rook: Rook | None = self.get_piece(row, 0)
+        king: King | None = self.get_piece(row, 4)
+
         self.field[row][4] = None
         self.field[row][0] = None
         self.field[row][2] = king
         self.field[row][3] = rook
+
         king.remove_castle()
         rook.remove_castle()
-
         self.update()
 
         return True
 
-    def castling7(self):
-        """Рокировка на королевском фланге"""
+    def possible_castling7(self):
+        """Возвращает, возможно ли выполнить короткую рокировку"""
         if self.end:
             return None
 
@@ -250,6 +259,17 @@ class Board:
 
         if not all(conditions):
             return False
+
+        return True
+
+    def castling7(self):
+        """Рокировка на королевском фланге"""
+        if not self.possible_castling7():
+            return False
+
+        row = 0 if self.current_player_color() == WHITE else 7
+        rook: Rook | None = self.get_piece(row, 7)
+        king: King | None = self.get_piece(row, 4)
 
         self.field[row][4] = None
         self.field[row][7] = None
@@ -324,9 +344,6 @@ class Board:
                         else:
                             self.end = True
                             return True
-
-    def stalemate_on_board(self):
-        """Проверка пата после хода. Если ни одна фигура не сможет походить, игра заканчивается"""
 
     def cancel_move(self, row, col, row1, col1):
         """Отменить ход, если король ходящего игрока попадает или остается под шахом"""

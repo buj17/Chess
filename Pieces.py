@@ -74,6 +74,9 @@ class Pawn(Piece):
             self.en_passant = False
             return True
 
+        elif not 0 <= row + 2 * direction <= 7:
+            return False
+
         elif all((row + 2 * direction == row1,
                   board.get_piece(row + direction, col) is None,
                   board.get_piece(row + 2 * direction, col) is None)):
@@ -103,18 +106,19 @@ class Pawn(Piece):
                                      board.get_piece(row, col1).get_color() == opponent(self.color)))
         else:
             return False
+
         return all(en_passant_condition)
 
     def is_en_passant(self):
-        """Добавить пешке возможность быть взятой на проходе"""
+        """Проверка возможно ли взять пешку на проходе"""
         return self.en_passant
 
     def add_en_passant(self):
-        """Снять с пешки возможность быть взятой на проходе"""
+        """Добавить пешке возможность быть взятой на проходе"""
         self.en_passant = True
 
     def remove_en_passant(self):
-        """Проверка возможно ли взять пешку на проходе"""
+        """Снять с пешки возможность быть взятой на проходе"""
         self.en_passant = False
 
 
