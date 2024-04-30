@@ -58,7 +58,7 @@ def main():
         elif command[0] == 'move':
 
             try:
-                row, col, row1, col1 = map(int, command.split()[1:])
+                row, col, row1, col1 = map(int, command[1:])
             except ValueError:
                 print('Ошибка при вводе команды')
             else:
