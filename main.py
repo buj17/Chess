@@ -118,6 +118,10 @@ class TkBoard:
         Если ход невозможен, фигура возвращается на свое место"""
         if self.grabbed is None:
             return None
+        
+        if event.x not in range(600) or event.y not in range(600):
+            self.cancel_move(None)
+            return None
 
         row, col = 7 - event.y // 75, event.x // 75
 
