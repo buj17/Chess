@@ -1,3 +1,4 @@
+"""Импортируем модули и создаем словарь с именами файлов, на которые будем ссылаться при создании изображения"""
 import tkinter as tk
 
 from Board import Board
@@ -19,6 +20,7 @@ images = {(WHITE, 'P'): 'WhitePawn.png',
 
 
 class TkPiece:
+    """При создании объекта создается изображение на холсте по координатам клетки"""
     def __init__(self, canvas: tk.Canvas, piece: Piece, row, col):
         self.piece = piece
         self.image = tk.PhotoImage(file=images[(self.piece.color, self.piece.char())])
@@ -38,15 +40,17 @@ class TkPiece:
 
 
 class TkBoard:
+    """В данном классе хранится изображение доски и осуществляется взаимодействие пользователя с механикой игры"""
     def __init__(self):
         self.board = Board()
 
         self.master = tk.Tk()
-        self.master.geometry('600x600')
+        self.master.geometry('600x630')
         self.master.resizable(False, False)
         self.master.title('Chess')
 
         self.canvas = tk.Canvas(self.master, height=600, width=600)
+        self.label = tk.Label(self.master)
 
         self.board_image = tk.PhotoImage(file='Board.png')
         self.wQ = tk.PhotoImage(file=images[(WHITE, 'Q')])
@@ -118,7 +122,7 @@ class TkBoard:
         Если ход невозможен, фигура возвращается на свое место"""
         if self.grabbed is None:
             return None
-        
+
         if event.x not in range(600) or event.y not in range(600):
             self.cancel_move(None)
             return None
@@ -136,12 +140,8 @@ class TkBoard:
                 self.promote_cords = (pawn_row, pawn_col, row, col)
                 return None
 
-        if self.board.move_piece(self.get_grabbed_piece_row(), self.get_grabbed_piece_col(), row, col):
-            self.update_board()
-
-        else:
-            old_cords = (self.pieces[self.grabbed].col * 75 + 37.5, (7 - self.pieces[self.grabbed].row) * 75 + 37.5)
-            self.canvas.coords(self.grabbed, old_cords)
+        self.board.move_piece(self.get_grabbed_piece_row(), self.get_grabbed_piece_col(), row, col)
+        self.update_board()
 
     def show_promote_image(self, row, col):
         """Показать картину с вариантами превращения"""
@@ -218,9 +218,27 @@ class TkBoard:
                     self.pieces[piece.piece_id] = piece
                     self.cords[(row, col)] = piece.piece_id
 
+        text = ''
+        if self.board.game_over():
+            self.master.unbind('<Button-1>')
+            self.master.unbind('<Button-3>')
+
+            if self.board.get_winner() is not None:
+                winner = self.board.get_winner()
+                text = 'Белые выиграли. Поставлен мат' if winner == WHITE else 'Черные выиграли. Поставлен мат'
+            elif self.board.end_by_stalemate():
+                text = 'Ничья. Пат'
+        else:
+            text = 'Ход белых' if self.board.current_player_color() == WHITE else 'Ход черных'
+            if self.board.check_on_board():
+                text += '. Шах'
+
+        self.label.config(text=text)
+
     def run(self):
         """Запуск программы"""
         self.canvas.pack()
+        self.label.pack()
         self.master.bind('<Button-1>', self.grab_piece)
         self.master.bind('<B1-Motion>', self.move_piece)
         self.master.bind('<ButtonRelease-1>', self.drop_piece)

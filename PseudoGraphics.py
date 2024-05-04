@@ -1,8 +1,12 @@
-from Board import Board
+"""Псевдографика"""
+
+from OldBoard import Board
 from colors import WHITE
 
 
 def main():
+    """Основная функция для работы с пользователем"""
+
     # Создаём шахматную доску
     board = Board()
     # Цикл ввода команд игроков
